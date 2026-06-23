@@ -21,6 +21,8 @@ git clone https://github.com/Andon-LaFreniere/Trade_Processing.git
 cd Trade_Processing
 mvn spring-boot:run -Dspring-boot.run.jvmArguments="\
   -Dspring.autoconfigure.exclude=org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration"
+
+# Access here: http://localhost:8081/swagger-ui/index.html
 ```
 
 ### With Kafka (Docker)
