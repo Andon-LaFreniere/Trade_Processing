@@ -1,8 +1,8 @@
 package com.andon.tradeprocessing.kafka;
 
 import com.andon.tradeprocessing.dto.TradeExecutedEvent;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
@@ -12,7 +12,6 @@ import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class TradeEventProducer {
 
     private final KafkaTemplate<String, TradeExecutedEvent> kafkaTemplate;
@@ -20,13 +19,23 @@ public class TradeEventProducer {
     @Value("${app.kafka.topic.trade-executed}")
     private String tradeExecutedTopic;
 
+    @Autowired
+    public TradeEventProducer(@Autowired(required = false) KafkaTemplate<String, TradeExecutedEvent> kafkaTemplate) {
+        this.kafkaTemplate = kafkaTemplate;
+    }
+
     /**
-     * Publishes a TradeExecutedEvent to Kafka.
-     * Key = symbol so all trades for the same symbol land on the same partition (ordering guarantee).
+     * Publishes a TradeExecutedEvent to Kafka if Kafka is available; otherwise
+     * no-op.
      */
     public void publishTradeExecuted(TradeExecutedEvent event) {
-        CompletableFuture<SendResult<String, TradeExecutedEvent>> future =
-                kafkaTemplate.send(tradeExecutedTopic, event.getSymbol(), event);
+        if (kafkaTemplate == null) {
+            log.debug("KafkaTemplate not available - skipping publish for tradeId={}", event.getTradeId());
+            return;
+        }
+
+        CompletableFuture<SendResult<String, TradeExecutedEvent>> future = kafkaTemplate.send(tradeExecutedTopic,
+                event.getSymbol(), event);
 
         future.whenComplete((result, ex) -> {
             if (ex != null) {
